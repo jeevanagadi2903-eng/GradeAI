@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – Bulk Grade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .breadcrumb{font-size:12px;color:#5a5570}
+        .breadcrumb a{color:#8b5cf6;text-decoration:none}
+        .main{position:relative;z-index:5;max-width:1000px;margin:0 auto;padding:48px}
+        .meta-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
+        .meta-tag{font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#a78bfa}
+        .card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px;position:relative;overflow:hidden;margin-bottom:24px}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .card-title{font-family:'Instrument Serif',serif;font-size:20px;margin-bottom:24px}
+        .field{margin-bottom:20px}
+        .field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        .upload-zone{border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:28px;text-align:center;cursor:none;transition:all 0.25s;background:rgba(255,255,255,0.02)}
+        .upload-zone:hover{border-color:#8b5cf6;background:rgba(139,92,246,0.03)}
+        .upload-zone input{display:none}
+        .upload-icon{font-size:32px;margin-bottom:8px}
+        .upload-hint{font-size:13px;color:#5a5570}
+        .file-name{font-size:12px;color:#8b5cf6;margin-top:8px;display:none}
+        input[type="number"]{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:14px;color:#e8e4f0;background:rgba(255,255,255,0.03);outline:none;transition:all 0.25s}
+        input[type="number"]:focus{border-color:#8b5cf6}
+
+        /* Student PDF list */
+        .student-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+        .student-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:center;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 18px}
+        .student-row select{border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:#e8e4f0;background:#0d0d1a;outline:none;appearance:none}
+        .student-row .fname{font-size:13px;color:#5a5570}
+        .remove-btn{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;border-radius:6px;padding:6px 10px;font-size:12px;cursor:none}
+
+        .grade-btn{width:100%;padding:16px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;transition:transform 0.2s,box-shadow 0.2s;margin-top:8px}
+        .grade-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.3)}
+        .grade-btn:disabled{opacity:0.5;transform:none}
+
+        /* Progress */
+        .progress-wrap{display:none;margin-top:24px}
+        .progress-label{font-size:13px;color:#5a5570;margin-bottom:8px}
+        .progress-bar-bg{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden}
+        .progress-bar-fill{height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899);border-radius:2px;width:0%;transition:width 0.5s}
+
+        /* Results table */
+        .results-card{display:none}
+        .results-table{width:100%;border-collapse:collapse;margin-top:8px}
+        .results-table th{padding:14px 16px;text-align:left;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;border-bottom:1px solid rgba(255,255,255,0.07)}
+        .results-table td{padding:14px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:#c4bdd4;vertical-align:top}
+        .results-table tr:hover td{background:rgba(139,92,246,0.04)}
+        .score-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa}
+        .detail-text{font-size:11px;color:#5a5570;line-height:1.6;max-width:400px;white-space:pre-wrap}
+        .expand-btn{font-size:11px;color:#8b5cf6;cursor:none;background:none;border:none;margin-top:4px}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="breadcrumb"><a href="/dashboard">Dashboard</a> / Bulk Grade</div>
+</nav>
+
+<div class="main">
+    <div class="meta-bar">
+        <span class="meta-tag">🏫 Class {{ class_name }}</span>
+        <span class="meta-tag">📌 Section {{ section }}</span>
+        <span class="meta-tag">📝 {{ exam_type }}</span>
+        <span class="meta-tag">📚 {{ subject }}</span>
+    </div>
+
+    <!-- Step 1: Answer Key -->
+    <div class="card">
+        <div class="card-title">Step 1 — Upload Answer Key PDF</div>
+        <div class="field">
+            <label>Answer Key + Question Paper (PDF)</label>
+            <div class="upload-zone" onclick="document.getElementById('akPdf').click()">
+                <div class="upload-icon">📋</div>
+                <div class="upload-hint">Click to upload answer key PDF</div>
+                <div class="file-name" id="akFileName"></div>
+                <input type="file" id="akPdf" accept=".pdf" onchange="showAKFile(this)">
+            </div>
+        </div>
+        <div class="field">
+            <label>Total Marks</label>
+            <input type="number" id="totalMarks" placeholder="e.g. 50">
+        </div>
+    </div>
+
+    <!-- Step 2: Student PDFs -->
+    <div class="card">
+        <div class="card-title">Step 2 — Upload Student Answer Sheets</div>
+        <div class="field">
+            <label>Select Multiple Student PDFs at once</label>
+            <div class="upload-zone" onclick="document.getElementById('studentPdfs').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-hint">Click to select all student PDFs</div>
+                <div class="file-name" id="studentFileNames"></div>
+                <input type="file" id="studentPdfs" accept=".pdf" multiple onchange="handleStudentFiles(this)">
+            </div>
+        </div>
+
+        <!-- Student-PDF mapping -->
+        <div id="studentList" class="student-list"></div>
+    </div>
+
+    <!-- Grade Button -->
+    <button class="grade-btn" id="gradeBtn" onclick="startBulkGrading()">
+        ⚡ Grade All Answer Sheets
+    </button>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap">
+        <div class="progress-label" id="progressLabel">Grading 0 / 0...</div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card results-card" id="resultsCard" style="margin-top:24px">
+        <div class="card-title">📊 Grading Results</div>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Score</th>
+                    <th>Question-wise Marks</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Cursor
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+
+    const students = [
+        {% for s in students %}
+        {id: "{{ s.student_id }}", name: "{{ s.name }}"},
+        {% endfor %}
+    ];
+
+    let studentFiles = [];
+
+    function showAKFile(input) {
+        const fn = document.getElementById('akFileName');
+        fn.style.display = 'block';
+        fn.textContent = '✓ ' + input.files[0].name;
+    }
+
+    function handleStudentFiles(input) {
+        studentFiles = Array.from(input.files);
+        const names = document.getElementById('studentFileNames');
+        names.style.display = 'block';
+        names.textContent = `✓ ${studentFiles.length} files selected`;
+
+        // Build student-file mapping UI
+        const list = document.getElementById('studentList');
+        list.innerHTML = '';
+
+        studentFiles.forEach((file, i) => {
+            const row = document.createElement('div');
+            row.className = 'student-row';
+            row.innerHTML = `
+                <div class="fname">📄 ${file.name}</div>
+                <select id="sid_${i}">
+                    <option value="">-- Assign Student --</option>
+                    ${students.map(s => `<option value="${s.id}">${s.id} – ${s.name}</option>`).join('')}
+                </select>
+                <button class="remove-btn" onclick="removeFile(${i})">✕</button>
+            `;
+            list.appendChild(row);
+
+            // Auto-assign if student count matches file count
+            if (students[i]) {
+                row.querySelector(`#sid_${i}`).value = students[i].id;
+            }
+        });
+    }
+
+    function removeFile(index) {
+        studentFiles.splice(index, 1);
+        const input = document.getElementById('studentPdfs');
+        handleStudentFiles({files: studentFiles});
+    }
+
+    async function startBulkGrading() {
+        const akFile = document.getElementById('akPdf').files[0];
+        const totalMarks = document.getElementById('totalMarks').value;
+
+        if (!akFile) { alert('Please upload answer key PDF.'); return; }
+        if (studentFiles.length === 0) { alert('Please upload student PDFs.'); return; }
+        if (!totalMarks) { alert('Please enter total marks.'); return; }
+
+        // Collect student IDs
+        const studentIds = studentFiles.map((_, i) => {
+            return document.getElementById(`sid_${i}`)?.value || '';
+        });
+
+        if (studentIds.some(id => !id)) {
+            alert('Please assign a student to every PDF.'); return;
+        }
+
+        const btn = document.getElementById('gradeBtn');
+        btn.disabled = true;
+        btn.textContent = '🤖 Grading in progress...';
+
+        document.getElementById('progressWrap').style.display = 'block';
+        document.getElementById('resultsCard').style.display = 'none';
+        document.getElementById('resultsBody').innerHTML = '';
+
+        // Build FormData
+        const fd = new FormData();
+        fd.append('answer_key_pdf', akFile);
+        fd.append('total_marks', totalMarks);
+        fd.append('exam_type', '{{ exam_type }}');
+        fd.append('subject', '{{ subject }}');
+        fd.append('class_name', '{{ class_name }}');
+        fd.append('section', '{{ section }}');
+
+        studentFiles.forEach((file, i) => {
+            fd.append('student_pdfs', file);
+            fd.append('student_ids', studentIds[i]);
+        });
+
+        document.getElementById('progressLabel').textContent = `Grading ${studentFiles.length} sheets... please wait`;
+        document.getElementById('progressFill').style.width = '30%';
+
+        try {
+            const res = await fetch('/bulk-grade', { method: 'POST', body: fd });
+            const data = await res.json();
+
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressLabel').textContent = `✅ Done! ${data.results.length} sheets graded.`;
+
+            // Show results
+            const tbody = document.getElementById('resultsBody');
+            data.results.forEach(r => {
+                const tr = document.createElement('tr');
+                const shortResult = r.result.split('\n').filter(l => l.trim()).slice(0, 6).join('\n');
+                tr.innerHTML = `
+                    <td><strong>${r.student_id}</strong></td>
+                    <td><span class="score-pill">${r.score || 'See detail'}</span></td>
+                    <td>
+                        <div class="detail-text" id="detail_${r.student_id}" style="display:none">${r.result}</div>
+                        <div class="detail-text">${shortResult}</div>
+                        <button class="expand-btn" onclick="toggleDetail('${r.student_id}')">Show full result ↓</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('resultsCard').style.display = 'block';
+            document.getElementById('resultsCard').scrollIntoView({behavior:'smooth'});
+
+        } catch(e) {
+            alert('Something went wrong: ' + e.message);
+        }
+
+        btn.disabled = false;
+        btn.textContent = '⚡ Grade All Answer Sheets';
+    }
+
+    function toggleDetail(id) {
+        const el = document.getElementById(`detail_${id}`);
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+</body>
+</html>

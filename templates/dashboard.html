@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeAI – Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width 0.2s,height 0.2s}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:floatOrb 8s ease-in-out infinite}
+        .orb1{width:400px;height:400px;background:rgba(139,92,246,0.12);top:-100px;left:-100px}
+        .orb2{width:300px;height:300px;background:rgba(236,72,153,0.08);bottom:-80px;right:-80px;animation-delay:-3s}
+        @keyframes floatOrb{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-20px)}}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-right{display:flex;align-items:center;gap:16px}
+        .school-name{font-size:13px;color:#5a5570}
+        .nav-btn{font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#e8e4f0;cursor:none;text-decoration:none;transition:all 0.2s}
+        .nav-btn:hover{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3)}
+        .main{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:60px 48px}
+        .welcome{margin-bottom:48px}
+        .welcome h1{font-family:'Instrument Serif',serif;font-size:40px;letter-spacing:-1px;margin-bottom:8px}
+        .welcome h1 span{font-style:italic;background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .welcome p{color:#5a5570;font-size:15px}
+        .section-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5a5570;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+        .section-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.07)}
+        .step-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:48px}
+        .step-card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:all 0.3s;cursor:none}
+        .step-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#8b5cf6,#ec4899);transform:scaleX(0);transition:transform 0.3s;transform-origin:left}
+        .step-card:hover{background:rgba(139,92,246,0.05);border-color:rgba(139,92,246,0.2);transform:translateY(-4px)}
+        .step-card:hover::before{transform:scaleX(1)}
+        .step-num{font-size:11px;letter-spacing:2px;color:#5a5570;text-transform:uppercase;margin-bottom:12px}
+        .step-icon{font-size:28px;margin-bottom:12px}
+        .step-label{font-size:15px;font-weight:500;margin-bottom:6px}
+        .step-desc{font-size:12px;color:#5a5570;line-height:1.5}
+        .grade-section{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px;position:relative;overflow:hidden}
+        .grade-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .grade-title{font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:28px}
+        .selectors{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+        .sel-group label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        select{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:14px;color:#e8e4f0;background:#0d0d1a;outline:none;cursor:none;transition:all 0.25s;appearance:none}
+        select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+        .selectors2{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+        .proceed-btn{padding:15px 40px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;transition:transform 0.2s,box-shadow 0.2s}
+        .proceed-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.3)}
+        /* Leaderboard */
+        .test-card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:32px;margin-bottom:20px;position:relative;overflow:hidden}
+        .test-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.5),transparent)}
+        .test-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+        .test-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .test-title{font-family:'Instrument Serif',serif;font-size:18px}
+        .test-badge{font-size:11px;padding:4px 12px;border-radius:20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:#a78bfa}
+        .test-date{font-size:12px;color:#5a5570}
+        .test-stats{display:flex;gap:24px}
+        .stat-item{text-align:center}
+        .stat-val{font-size:20px;font-weight:600;background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .stat-lbl{font-size:11px;color:#5a5570;margin-top:2px}
+        .podium{display:flex;gap:12px;margin-bottom:20px;align-items:flex-end}
+        .podium-item{flex:1;border-radius:12px;padding:16px;text-align:center;position:relative;border:1px solid rgba(255,255,255,0.07)}
+        .podium-item.first{background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,165,0,0.05));border-color:rgba(255,215,0,0.2);order:2}
+        .podium-item.second{background:rgba(192,192,192,0.05);border-color:rgba(192,192,192,0.15);order:1}
+        .podium-item.third{background:rgba(205,127,50,0.05);border-color:rgba(205,127,50,0.15);order:3}
+        .podium-medal{font-size:24px;margin-bottom:8px}
+        .podium-name{font-size:13px;font-weight:600;margin-bottom:4px}
+        .podium-score{font-size:18px;font-weight:700;margin-bottom:2px}
+        .podium-percent{font-size:11px;color:#5a5570}
+        .rankings-toggle{font-size:12px;color:#8b5cf6;background:none;border:none;cursor:none;padding:8px 0;display:flex;align-items:center;gap:6px}
+        .rankings-table{display:none;margin-top:16px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)}
+        .rankings-table.open{display:block}
+        .rank-row{display:grid;grid-template-columns:40px 1fr 80px 60px;padding:11px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center}
+        .rank-row:last-child{border-bottom:none}
+        .rank-row:hover{background:rgba(139,92,246,0.04)}
+        .rank-num{color:#5a5570;font-size:12px;font-weight:600}
+        .rank-name{color:#c4bdd4}
+        .rank-score{color:#e8e4f0;font-weight:600;text-align:right}
+        .rank-bar-wrap{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-left:8px}
+        .rank-bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899);border-radius:2px}
+        .no-tests{text-align:center;padding:48px;color:#5a5570;font-size:14px;background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="nav-right">
+        <span class="school-name">{{ school_name }}</span>
+        <a href="/students" class="nav-btn">👥 Students</a>
+        <a href="/history" class="nav-btn">📊 History</a>
+        <a href="/logout" class="nav-btn">Logout</a>
+        <a href="/live-scan" class="nav-btn">📠 Live Scan</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="welcome">
+        <h1>Good morning, <span>{{ school_name }}</span></h1>
+        <p>Select class, section, exam type and subject to start grading.</p>
+    </div>
+
+    <div class="section-title">How it works</div>
+    <div class="step-flow">
+        <div class="step-card">
+            <div class="step-num">Step 01</div>
+            <div class="step-icon">🏫</div>
+            <div class="step-label">Select Class</div>
+            <div class="step-desc">Choose the class and section</div>
+        </div>
+        <div class="step-card">
+            <div class="step-num">Step 02</div>
+            <div class="step-icon">📝</div>
+            <div class="step-label">Select Exam</div>
+            <div class="step-desc">Unit test, Midterm or Annual</div>
+        </div>
+        <div class="step-card">
+            <div class="step-num">Step 03</div>
+            <div class="step-icon">📚</div>
+            <div class="step-label">Select Subject</div>
+            <div class="step-desc">Choose the subject</div>
+        </div>
+        <div class="step-card">
+            <div class="step-num">Step 04</div>
+            <div class="step-icon">🤖</div>
+            <div class="step-label">AI Grades</div>
+            <div class="step-desc">Upload sheets and get results</div>
+        </div>
+    </div>
+
+    <div class="section-title">Start Grading</div>
+    <div class="grade-section">
+        <div class="grade-title">Select Parameters</div>
+        <div class="selectors">
+            <div class="sel-group">
+                <label>Class</label>
+                <select id="classSelect">
+                    <option value="">-- Select Class --</option>
+                    {% for c in range(1, 13) %}
+                    <option value="{{ c }}">Class {{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sel-group">
+                <label>Section</label>
+                <select id="sectionSelect">
+                    <option value="">-- Select Section --</option>
+                    <option>A</option><option>B</option><option>C</option>
+                    <option>D</option><option>E</option>
+                </select>
+            </div>
+            <div class="sel-group">
+                <label>Exam Type</label>
+                <select id="examSelect">
+                    <option value="">-- Select Exam --</option>
+                    <option>Unit Test</option>
+                    <option>Midterm</option>
+                    <option>Annual Exam</option>
+                    <option>Practice Test</option>
+                </select>
+            </div>
+        </div>
+        <div class="selectors2">
+            <div class="sel-group">
+                <label>Subject</label>
+                <select id="subjectSelect">
+                    <option value="">-- Select Subject --</option>
+                    <option>Mathematics</option>
+                    <option>Science</option>
+                    <option>English</option>
+                    <option>Hindi</option>
+                    <option>Social Studies</option>
+                    <option>Physics</option>
+                    <option>Chemistry</option>
+                    <option>Biology</option>
+                    <option>Computer Science</option>
+                </select>
+            </div>
+        </div>
+        <button class="proceed-btn" onclick="proceed()">Proceed to Grading →</button>
+    </div>
+    <!-- Recent Tests Leaderboard -->
+    <div style="margin-top:48px">
+        <div class="section-title" style="margin-top:0">Recent Tests</div>
+        <div id="testsContainer">
+            <div style="text-align:center;padding:48px;color:#5a5570;font-size:14px">
+                Loading tests...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+
+    document.querySelectorAll('button,select,a,.step-card').forEach(el=>{
+        el.addEventListener('mouseenter',()=>{cursor.style.width='20px';cursor.style.height='20px'});
+        el.addEventListener('mouseleave',()=>{cursor.style.width='12px';cursor.style.height='12px'});
+    });
+
+    function proceed() {
+    const c=document.getElementById('classSelect').value;
+    const s=document.getElementById('sectionSelect').value;
+    const e=document.getElementById('examSelect').value;
+    const sub=document.getElementById('subjectSelect').value;
+    if (!c||!s||!e||!sub) { alert('Please select all fields.'); return; }
+    window.location.href = `/live-scan-page?class=${c}&section=${s}&exam_type=${encodeURIComponent(e)}&subject=${encodeURIComponent(sub)}`;
+}
+    // Load leaderboard
+    async function loadTests() {
+        const container = document.getElementById('testsContainer');
+        try {
+            const res = await fetch('/dashboard-stats');
+            const tests = await res.json();
+
+            if (!tests.length) {
+                container.innerHTML = `<div class="no-tests">📋 No tests graded yet. Start grading to see results here!</div>`;
+                return;
+            }
+
+            container.innerHTML = tests.map((test, idx) => `
+                <div class="test-card">
+                    <div class="test-header">
+                        <div class="test-meta">
+                            <div class="test-title">Class ${test.class_name}${test.section} — ${test.subject}</div>
+                            <span class="test-badge">${test.exam_type}</span>
+                            <span class="test-date">📅 ${test.date}</span>
+                        </div>
+                        <div class="test-stats">
+                            <div class="stat-item">
+                                <div class="stat-val">${test.average}/${test.total_marks}</div>
+                                <div class="stat-lbl">Class Average</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-val">${test.total_students}</div>
+                                <div class="stat-lbl">Students</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${test.top3.length ? `
+                    <div class="podium">
+                        ${test.top3[1] ? `
+                        <div class="podium-item second">
+                            <div class="podium-medal">🥈</div>
+                            <div class="podium-name">${test.top3[1].name}</div>
+                            <div class="podium-score">${test.top3[1].score}</div>
+                            <div class="podium-percent">${test.top3[1].percent}%</div>
+                        </div>` : '<div style="flex:1"></div>'}
+                        <div class="podium-item first">
+                            <div class="podium-medal">🥇</div>
+                            <div class="podium-name">${test.top3[0].name}</div>
+                            <div class="podium-score">${test.top3[0].score}</div>
+                            <div class="podium-percent">${test.top3[0].percent}%</div>
+                        </div>
+                        ${test.top3[2] ? `
+                        <div class="podium-item third">
+                            <div class="podium-medal">🥉</div>
+                            <div class="podium-name">${test.top3[2].name}</div>
+                            <div class="podium-score">${test.top3[2].score}</div>
+                            <div class="podium-percent">${test.top3[2].percent}%</div>
+                        </div>` : '<div style="flex:1"></div>'}
+                    </div>` : ''}
+
+                    <button class="rankings-toggle" onclick="toggleRankings(${idx})">
+                        📋 Show full rankings (${test.rankings.length} students) ↓
+                    </button>
+                    <div class="rankings-table" id="rankings_${idx}">
+                        ${test.rankings.map((s, i) => `
+                        <div class="rank-row">
+                            <div class="rank-num">#${i+1}</div>
+                            <div class="rank-name">${s.name}</div>
+                            <div class="rank-score">${s.score}</div>
+                            <div>
+                                <div class="rank-bar-wrap">
+                                    <div class="rank-bar" style="width:${s.percent}%"></div>
+                                </div>
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+        } catch(e) {
+            container.innerHTML = `<div class="no-tests">Could not load tests.</div>`;
+        }
+    }
+
+    function toggleRankings(idx) {
+        const el = document.getElementById(`rankings_${idx}`);
+        el.classList.toggle('open');
+    }
+
+    loadTests();
+
+</script>
+</body>
+</html>

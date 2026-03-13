@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – Students</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-right{display:flex;gap:12px;align-items:center}
+        .nav-btn{font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#e8e4f0;cursor:none;text-decoration:none;transition:all 0.2s}
+        .nav-btn:hover{background:rgba(139,92,246,0.1)}
+        .main{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:48px}
+        .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+        .page-title{font-family:'Instrument Serif',serif;font-size:36px;letter-spacing:-1px}
+        .page-title span{font-style:italic;background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:32px 40px;position:relative;overflow:hidden;margin-bottom:24px}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .card-title{font-family:'Instrument Serif',serif;font-size:18px;margin-bottom:20px}
+        .section-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5a5570;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+        .section-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.07)}
+
+        /* CSV Upload */
+        .upload-zone{border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:24px;text-align:center;cursor:none;transition:all 0.25s;background:rgba(255,255,255,0.02)}
+        .upload-zone:hover{border-color:#8b5cf6}
+        .upload-zone input{display:none}
+        .upload-hint{font-size:13px;color:#5a5570;margin-top:6px}
+        .file-name{font-size:12px;color:#8b5cf6;margin-top:6px;display:none}
+        .import-btn{padding:12px 28px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;margin-top:16px;transition:transform 0.2s}
+        .import-btn:hover{transform:translateY(-1px)}
+        .template-link{font-size:12px;color:#8b5cf6;margin-top:10px;display:block;cursor:none}
+
+        /* Add student form */
+        .add-grid{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:12px;align-items:end}
+        .add-group label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        .add-group input, .add-group select{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:#e8e4f0;background:rgba(255,255,255,0.03);outline:none;transition:all 0.25s;appearance:none}
+        .add-group input:focus,.add-group select:focus{border-color:#8b5cf6}
+        .add-btn{padding:12px 20px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:none;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;transition:all 0.2s;white-space:nowrap}
+        .add-btn:hover{background:rgba(139,92,246,0.3)}
+
+        /* Promote */
+        .promote-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}
+
+        /* Filters */
+        .filters{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+        .filter-select{border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:#e8e4f0;background:#0d0d1a;outline:none;cursor:none;appearance:none}
+        .search-input{border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:#e8e4f0;background:rgba(255,255,255,0.03);outline:none;width:220px}
+        .search-input:focus{border-color:#8b5cf6}
+        .count-badge{font-size:12px;color:#5a5570;margin-left:auto;align-self:center}
+
+        /* Table */
+        .table-wrap{border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)}
+        table{width:100%;border-collapse:collapse}
+        th{padding:14px 18px;text-align:left;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.02)}
+        td{padding:13px 18px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:#c4bdd4}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:rgba(139,92,246,0.04)}
+        .class-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);color:#67e8f9}
+        .action-btn{padding:5px 12px;border-radius:6px;font-size:11px;cursor:none;border:none;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+        .edit-btn{background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa}
+        .edit-btn:hover{background:rgba(139,92,246,0.25)}
+        .del-btn{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;margin-left:6px}
+        .del-btn:hover{background:rgba(239,68,68,0.2)}
+        .empty{text-align:center;padding:48px;color:#5a5570}
+
+        /* Modal */
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+        .modal-overlay.open{display:flex}
+        .modal{background:#0d0d1a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;width:100%;max-width:440px;position:relative}
+        .modal h3{font-family:'Instrument Serif',serif;font-size:20px;margin-bottom:24px}
+        .modal-field{margin-bottom:16px}
+        .modal-field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        .modal-field input,.modal-field select{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:#e8e4f0;background:rgba(255,255,255,0.03);outline:none;appearance:none}
+        .modal-field input:focus,.modal-field select:focus{border-color:#8b5cf6}
+        .modal-actions{display:flex;gap:12px;margin-top:24px}
+        .save-btn{flex:1;padding:13px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white}
+        .cancel-btn{padding:13px 20px;border:1px solid rgba(255,255,255,0.1);border-radius:10px;background:none;color:#5a5570;font-family:'DM Sans',sans-serif;font-size:14px;cursor:none}
+
+        .toast{position:fixed;bottom:32px;right:32px;background:#1a1a2e;border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:14px 20px;font-size:13px;color:#a78bfa;z-index:200;display:none;animation:slideIn 0.3s ease}
+        @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h3>Edit Student</h3>
+        <input type="hidden" id="editId">
+        <div class="modal-field"><label>Student ID</label><input type="text" id="editSid"></div>
+        <div class="modal-field"><label>Full Name</label><input type="text" id="editName"></div>
+        <div class="modal-field">
+            <label>Class</label>
+            <select id="editClass">
+                {% for c in range(1,13) %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="modal-field">
+            <label>Section</label>
+            <select id="editSection">
+                <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <button class="save-btn" onclick="saveEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="nav-right">
+        <a href="/dashboard" class="nav-btn">← Dashboard</a>
+        <a href="/logout" class="nav-btn">Logout</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="page-header">
+        <div class="page-title">Student <span>Management</span></div>
+    </div>
+
+    <!-- CSV Import -->
+    <div class="section-label">Bulk Import</div>
+    <div class="card">
+        <div class="card-title">Import from CSV / Excel</div>
+        <div class="upload-zone" onclick="document.getElementById('csvFile').click()">
+            <div style="font-size:28px;margin-bottom:6px">📊</div>
+            <div style="font-size:14px;font-weight:500">Click to upload CSV or Excel file</div>
+            <div class="upload-hint">Columns needed: student_id, name, class, section</div>
+            <div class="file-name" id="csvFileName"></div>
+            <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" onchange="showCSV(this)">
+        </div>
+        <button class="import-btn" onclick="importCSV()">📥 Import Students</button>
+        <a class="template-link" onclick="downloadTemplate()">⬇ Download sample template</a>
+        <div id="importResult" style="font-size:13px;margin-top:12px;display:none"></div>
+    </div>
+
+    <!-- Add Single Student -->
+    <div class="section-label">Add Single Student</div>
+    <div class="card">
+        <div class="card-title">Add Student Manually</div>
+        <div class="add-grid">
+            <div class="add-group">
+                <label>Student ID</label>
+                <input type="text" id="newSid" placeholder="e.g. STU101">
+            </div>
+            <div class="add-group">
+                <label>Full Name</label>
+                <input type="text" id="newName" placeholder="Rahul Sharma">
+            </div>
+            <div class="add-group">
+                <label>Class</label>
+                <select id="newClass">
+                    {% for c in range(1,13) %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="add-group">
+                <label>Section</label>
+                <select id="newSection">
+                    <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+            </div>
+            <button class="add-btn" onclick="addStudent()">+ Add</button>
+        </div>
+    </div>
+
+    <!-- Promote Class -->
+    <div class="section-label">Year End Promotion</div>
+    <div class="card">
+        <div class="card-title">Promote Entire Class</div>
+        <div style="font-size:13px;color:#5a5570;margin-bottom:16px">Move all students from one class to the next at year end.</div>
+        <div class="promote-grid">
+            <div class="add-group">
+                <label>From Class</label>
+                <select id="fromClass">
+                    {% for c in range(1,13) %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="add-group">
+                <label>Section</label>
+                <select id="promoteSection">
+                    <option value="ALL">All Sections</option>
+                    <option>A</option><option>B</option><option>C</option><option>D</option>
+                </select>
+            </div>
+            <div class="add-group">
+                <label>To Class</label>
+                <select id="toClass">
+                    {% for c in range(2,13) %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            <button class="add-btn" style="background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3);color:#67e8f9" onclick="promoteClass()">🎓 Promote</button>
+        </div>
+    </div>
+
+    <!-- Student List -->
+    <div class="section-label">All Students</div>
+    <div class="card">
+        <div class="filters">
+            <select class="filter-select" id="filterClass" onchange="filterStudents()">
+                <option value="">All Classes</option>
+                {% for c in range(1,13) %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}
+            </select>
+            <select class="filter-select" id="filterSection" onchange="filterStudents()">
+                <option value="">All Sections</option>
+                <option>A</option><option>B</option><option>C</option><option>D</option>
+            </select>
+            <input class="search-input" type="text" placeholder="Search by name or ID..." oninput="filterStudents()" id="searchInput">
+            <div class="count-badge" id="countBadge">{{ students|length }} students</div>
+        </div>
+
+        <div class="table-wrap">
+            {% if students %}
+            <table id="studentTable">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Section</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    {% for s in students %}
+                    <tr data-class="{{ s.class_name }}" data-section="{{ s.section }}" data-name="{{ s.name|lower }}" data-sid="{{ s.student_id|lower }}">
+                        <td>{{ s.student_id }}</td>
+                        <td>{{ s.name }}</td>
+                        <td><span class="class-badge">Class {{ s.class_name }}</span></td>
+                        <td>{{ s.section }}</td>
+                        <td>
+                            <button class="action-btn edit-btn" onclick="openEdit({{ s.id }}, '{{ s.student_id }}', '{{ s.name }}', '{{ s.class_name }}', '{{ s.section }}')">Edit</button>
+                            <button class="action-btn del-btn" onclick="deleteStudent({{ s.id }}, this)">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">No students yet. Import a CSV or add manually above.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+
+    function toast(msg, color='#a78bfa') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.style.color = color;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display='none', 3000);
+    }
+
+    function showCSV(input) {
+        const fn = document.getElementById('csvFileName');
+        fn.style.display = 'block';
+        fn.textContent = '✓ ' + input.files[0].name;
+    }
+
+    async function importCSV() {
+        const file = document.getElementById('csvFile').files[0];
+        if (!file) { alert('Please select a file first.'); return; }
+        const fd = new FormData();
+        fd.append('csv_file', file);
+        const res = await fetch('/import-students', { method:'POST', body:fd });
+        const data = await res.json();
+        const result = document.getElementById('importResult');
+        result.style.display = 'block';
+        if (data.success) {
+            result.style.color = '#22c55e';
+            result.textContent = `✅ ${data.added} students added, ${data.skipped} updated/skipped.`;
+            toast(`✅ ${data.added} students imported!`, '#22c55e');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            result.style.color = '#f87171';
+            result.textContent = '❌ Error: ' + data.error;
+        }
+    }
+
+    function downloadTemplate() {
+        const csv = 'student_id,name,class,section\nSTU001,Rahul Sharma,10,A\nSTU002,Priya Singh,10,A\nSTU003,Arun Kumar,9,B';
+        const blob = new Blob([csv], {type:'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'students_template.csv';
+        a.click();
+    }
+
+    async function addStudent() {
+        const data = {
+            student_id: document.getElementById('newSid').value,
+            name: document.getElementById('newName').value,
+            class_name: document.getElementById('newClass').value,
+            section: document.getElementById('newSection').value
+        };
+        if (!data.student_id || !data.name) { alert('Fill all fields.'); return; }
+        const res = await fetch('/add-student', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            toast('✅ Student added!', '#22c55e');
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+
+    async function promoteClass() {
+        const fromClass = document.getElementById('fromClass').value;
+        const toClass = document.getElementById('toClass').value;
+        const section = document.getElementById('promoteSection').value;
+        if (!confirm(`Promote all Class ${fromClass} ${section} students to Class ${toClass}?`)) return;
+        const res = await fetch('/promote-class', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({from_class: fromClass, to_class: toClass, section: section})
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast(`🎓 ${data.promoted} students promoted!`, '#67e8f9');
+            setTimeout(() => location.reload(), 1500);
+        }
+    }
+
+    function openEdit(id, sid, name, cls, sec) {
+        document.getElementById('editId').value = id;
+        document.getElementById('editSid').value = sid;
+        document.getElementById('editName').value = name;
+        document.getElementById('editClass').value = cls;
+        document.getElementById('editSection').value = sec;
+        document.getElementById('editModal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').classList.remove('open');
+    }
+
+    async function saveEdit() {
+        const data = {
+            id: document.getElementById('editId').value,
+            student_id: document.getElementById('editSid').value,
+            name: document.getElementById('editName').value,
+            class_name: document.getElementById('editClass').value,
+            section: document.getElementById('editSection').value
+        };
+        const res = await fetch('/edit-student', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            toast('✅ Student updated!', '#22c55e');
+            closeModal();
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+
+    async function deleteStudent(id, btn) {
+        if (!confirm('Delete this student? This cannot be undone.')) return;
+        const res = await fetch('/delete-student', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({id: id})
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.closest('tr').remove();
+            toast('🗑 Student deleted.', '#f87171');
+        }
+    }
+
+    function filterStudents() {
+        const cls = document.getElementById('filterClass').value;
+        const sec = document.getElementById('filterSection').value;
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#studentTableBody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            const matchClass = !cls || row.dataset.class === cls;
+            const matchSection = !sec || row.dataset.section === sec;
+            const matchSearch = !search || row.dataset.name.includes(search) || row.dataset.sid.includes(search);
+            const show = matchClass && matchSection && matchSearch;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        document.getElementById('countBadge').textContent = visible + ' students';
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:floatOrb 8s ease-in-out infinite}
+        .orb1{width:400px;height:400px;background:rgba(139,92,246,0.12);top:-100px;left:-100px}
+        .orb2{width:300px;height:300px;background:rgba(236,72,153,0.08);bottom:-80px;right:-80px;animation-delay:-3s}
+        @keyframes floatOrb{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-20px)}}
+        .logo{font-family:'Instrument Serif',serif;font-size:28px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;text-align:center}
+        .tagline{font-size:13px;color:#5a5570;text-align:center;margin-bottom:36px;letter-spacing:1px;text-transform:uppercase}
+        .card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px;width:100%;max-width:420px;position:relative;z-index:5}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent);border-radius:20px 20px 0 0}
+        .card h2{font-family:'Instrument Serif',serif;font-size:24px;margin-bottom:28px}
+        .field{margin-bottom:18px}
+        .field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        .field input{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:14px;color:#e8e4f0;background:rgba(255,255,255,0.03);outline:none;transition:all 0.25s}
+        .field input:focus{border-color:#8b5cf6;background:rgba(139,92,246,0.05);box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+        .btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;margin-top:8px;transition:transform 0.2s,box-shadow 0.2s}
+        .btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.3)}
+        .error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 16px;font-size:13px;color:#f87171;margin-bottom:18px}
+        .switch{text-align:center;margin-top:20px;font-size:13px;color:#5a5570}
+        .switch a{color:#8b5cf6;text-decoration:none;font-weight:500}
+        .switch a:hover{text-decoration:underline}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="logo">GradeAI</div>
+<div class="tagline">School Login Portal</div>
+
+<div class="card">
+    <h2>Welcome back</h2>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST">
+        <div class="field">
+            <label>School Email</label>
+            <input type="email" name="email" placeholder="principal@school.com" required>
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn" type="submit">Login →</button>
+    </form>
+    <div class="switch">Don't have an account? <a href="/signup">Register your school</a></div>
+</div>
+
+<script>
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+</script>
+</body>
+</html>

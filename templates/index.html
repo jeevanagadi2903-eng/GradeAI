@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeAI – Instant Paper Grading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060f;
+            --surface: #0d0d1a;
+            --border: rgba(255,255,255,0.07);
+            --text: #e8e4f0;
+            --muted: #5a5570;
+            --accent: #8b5cf6;
+            --accent2: #ec4899;
+            --accent3: #06b6d4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        /* Custom Cursor */
+        #cursor {
+            position: fixed;
+            width: 12px; height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background 0.2s;
+            mix-blend-mode: screen;
+        }
+
+        #cursor-ring {
+            position: fixed;
+            width: 40px; height: 40px;
+            border: 1.5px solid rgba(139,92,246,0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Mouse glow orb */
+        #glow-orb {
+            position: fixed;
+            width: 700px; height: 700px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Background Grid */
+        .bg-grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none; z-index: 0;
+        }
+
+        /* Floating Orbs */
+        .orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); pointer-events: none; z-index: 0;
+            animation: floatOrb 8s ease-in-out infinite;
+        }
+        .orb-1 { width:400px; height:400px; background:rgba(139,92,246,0.12); top:-100px; left:-100px; }
+        .orb-2 { width:300px; height:300px; background:rgba(236,72,153,0.08); bottom:-80px; right:-80px; animation-delay:-3s; }
+        .orb-3 { width:200px; height:200px; background:rgba(6,182,212,0.08); top:50%; right:20%; animation-delay:-5s; }
+
+        @keyframes floatOrb {
+            0%,100% { transform: translate(0,0) scale(1); }
+            33% { transform: translate(30px,-30px) scale(1.05); }
+            66% { transform: translate(-20px,20px) scale(0.95); }
+        }
+
+        /* Nav */
+        nav {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 24px 60px;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            background: rgba(6,6,15,0.7);
+        }
+
+        .logo {
+            font-family: 'Instrument Serif', serif; font-size: 24px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .nav-pill {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--muted); border: 1px solid var(--border);
+            padding: 8px 18px; border-radius: 100px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .dot { width:6px; height:6px; background:#22c55e; border-radius:50%; animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+        }
+
+        /* Hero */
+        .hero {
+            position: relative; z-index: 5;
+            display: grid; grid-template-columns: 1.1fr 0.9fr;
+            gap: 60px; align-items: center;
+            max-width: 1200px; margin: 0 auto;
+            padding: 80px 60px; min-height: calc(100vh - 73px);
+        }
+
+        .hero-text h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 72px; line-height: 1.0;
+            letter-spacing: -2px; margin-bottom: 28px;
+        }
+
+        .hero-text h1 .gradient-text {
+            font-style: italic;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .hero-text p {
+            font-size: 17px; line-height: 1.8;
+            color: var(--muted); max-width: 420px;
+            font-weight: 300; margin-bottom: 48px;
+        }
+
+        .stats {
+            display: flex; border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            background: rgba(255,255,255,0.02); max-width: 420px;
+        }
+
+        .stat {
+            flex: 1; padding: 20px 24px;
+            border-right: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+        .stat:last-child { border-right: none; }
+        .stat:hover { background: rgba(139,92,246,0.08); }
+
+        .stat .n {
+            font-family: 'Instrument Serif', serif; font-size: 32px;
+            background: linear-gradient(135deg, #fff, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+        /* Form Card */
+        .form-wrap { position: relative; }
+
+        .form-wrap::before {
+            content: ''; position: absolute; inset: -1px;
+            border-radius: 21px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.5), rgba(236,72,153,0.3), rgba(6,182,212,0.2));
+            z-index: -1; opacity: 0; transition: opacity 0.3s;
+        }
+        .form-wrap:hover::before { opacity: 1; }
+
+        .form-card {
+            background: rgba(13,13,26,0.95);
+            border: 1px solid var(--border);
+            border-radius: 20px; padding: 40px;
+            backdrop-filter: blur(40px);
+            position: relative; overflow: hidden;
+        }
+
+        .form-card::before {
+            content: ''; position: absolute;
+            top:0; left:0; right:0; height:1px;
+            background: linear-gradient(90deg, transparent, rgba(139,92,246,0.8), transparent);
+        }
+
+        .inner-glow {
+            position: absolute; width:300px; height:300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%);
+            pointer-events: none; transform: translate(-50%,-50%);
+        }
+
+        .form-title { font-family:'Instrument Serif',serif; font-size:22px; margin-bottom:26px; position:relative; }
+
+        .field { margin-bottom: 18px; position: relative; }
+
+        .field label {
+            display:block; font-size:11px; font-weight:600;
+            letter-spacing:2px; text-transform:uppercase;
+            color:var(--muted); margin-bottom:8px;
+        }
+
+        .upload-zone {
+            border: 1.5px dashed rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 24px;
+            text-align: center; cursor: none;
+            transition: all 0.25s;
+            background: rgba(255,255,255,0.02);
+            position: relative; overflow: hidden;
+        }
+
+        .upload-zone::after {
+            content:''; position:absolute; inset:0;
+            background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(236,72,153,0.05));
+            opacity:0; transition:opacity 0.3s;
+        }
+
+        .upload-zone:hover { border-color: var(--accent); }
+        .upload-zone:hover::after { opacity:1; }
+        .upload-zone input { display:none; }
+        .upload-icon { font-size:26px; margin-bottom:6px; }
+        .upload-hint { font-size:13px; color:var(--muted); }
+        .file-name { font-size:12px; color:var(--accent); margin-top:6px; display:none; }
+
+        textarea, input[type="number"], input[type="text"] {
+            width:100%; border: 1.5px solid rgba(255,255,255,0.08);
+            border-radius:10px; padding:13px 16px;
+            font-family:'DM Sans',sans-serif; font-size:14px;
+            color:var(--text); background:rgba(255,255,255,0.03);
+            outline:none; transition:all 0.25s; resize:none;
+        }
+        textarea { min-height:85px; }
+        textarea:focus, input:focus {
+            border-color:var(--accent);
+            background:rgba(139,92,246,0.05);
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
+        }
+
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+        .grade-btn {
+            width:100%; padding:16px; border:none; border-radius:12px;
+            font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600;
+            cursor:none; position:relative; overflow:hidden; margin-top:6px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color:white; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .grade-btn:hover { transform:translateY(-2px); box-shadow: 0 20px 40px rgba(139,92,246,0.3); }
+        .grade-btn:active { transform:translateY(0); }
+        .grade-btn::before {
+            content:''; position:absolute; inset:0;
+            background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+            opacity:0; transition:opacity 0.2s;
+        }
+        .grade-btn:hover::before { opacity:1; }
+        .grade-btn:disabled { opacity:0.5; transform:none; box-shadow:none; }
+
+        /* Result */
+        #resultSection {
+            display:none; position:relative; z-index:5;
+            max-width:1200px; margin:0 auto; padding:0 60px 100px;
+        }
+
+        .section-label {
+            font-size:11px; letter-spacing:4px; text-transform:uppercase;
+            color:var(--muted); margin-bottom:32px;
+            display:flex; align-items:center; gap:16px;
+        }
+        .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+        .result-grid { display:grid; grid-template-columns:260px 1fr; gap:20px; }
+
+        .score-card {
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.1));
+            border: 1px solid rgba(139,92,246,0.3);
+            border-radius:20px; padding:40px 30px;
+            display:flex; flex-direction:column; align-items:center;
+            justify-content:center; text-align:center;
+            position:relative; overflow:hidden;
+        }
+        .score-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:1px;
+            background: linear-gradient(90deg,transparent,var(--accent),transparent);
+        }
+
+        .score-tag { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); margin-bottom:20px; }
+
+        .score-big {
+            font-family:'Instrument Serif',serif; font-size:80px; line-height:1;
+            background:linear-gradient(135deg,#fff,var(--accent));
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
+        .score-denom { font-size:18px; color:var(--muted); margin-top:4px; }
+
+        .score-bar-bg {
+            width:100%; height:4px; background:rgba(255,255,255,0.05);
+            border-radius:2px; margin-top:24px; overflow:hidden;
+        }
+        .score-bar-fill {
+            height:100%;
+            background:linear-gradient(90deg,var(--accent),var(--accent2));
+            border-radius:2px; width:0%;
+            transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        .detail-col { display:flex; flex-direction:column; gap:16px; }
+
+        .detail-card {
+            background:rgba(255,255,255,0.02);
+            border:1px solid var(--border); border-radius:16px;
+            padding:24px 28px; border-left:2px solid var(--accent);
+            transition:all 0.3s; opacity:0; transform:translateX(20px);
+        }
+        .detail-card.visible { opacity:1; transform:translateX(0); }
+        .detail-card:hover { background:rgba(139,92,246,0.05); }
+
+        .dc-label { font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+        .dc-value { font-size:15px; line-height:1.7; color:var(--text); font-weight:300; }
+
+        .magnetic { transition: transform 0.3s cubic-bezier(0.23,1,0.32,1); }
+
+        @media (max-width:900px) {
+            body { cursor:auto; }
+            #cursor, #cursor-ring { display:none; }
+            nav { padding:20px 24px; }
+            .hero { grid-template-columns:1fr; padding:40px 24px; min-height:auto; gap:40px; }
+            .hero-text h1 { font-size:44px; }
+            #resultSection { padding:0 24px 60px; }
+            .result-grid { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div id="glow-orb"></div>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="nav-pill"><div class="dot"></div>AI Powered Grading</div>
+</nav>
+
+<section class="hero">
+    <div class="hero-text">
+        <h1>Grade papers<br><span class="gradient-text">in seconds,</span><br>not hours.</h1>
+        <p>Upload a photo of any handwritten answer sheet. Our AI reads it, compares to your answer key, and returns a score with detailed feedback — instantly.</p>
+        <div class="stats">
+            <div class="stat"><div class="n">~5s</div><div class="l">Per paper</div></div>
+            <div class="stat"><div class="n">99%</div><div class="l">Accuracy</div></div>
+            <div class="stat"><div class="n">∞</div><div class="l">Subjects</div></div>
+        </div>
+    </div>
+
+    <div class="form-wrap">
+        <div class="form-card" id="formCard">
+            <div class="inner-glow" id="innerGlow"></div>
+            <div class="form-title">Check an answer sheet</div>
+
+            <div class="field">
+                <label>Answer Sheet Photo</label>
+                <div class="upload-zone" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-hint">Click to upload image</div>
+                    <div class="file-name" id="fileName"></div>
+                    <input type="file" id="imageInput" accept="image/*" onchange="handleFile(this)">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Answer Key</label>
+                <textarea id="answerKey" placeholder="Type the correct answer here..."></textarea>
+            </div>
+
+            <div class="two-col">
+                <div class="field">
+                    <label>Total Marks</label>
+                    <input type="number" id="totalMarks" placeholder="e.g. 10">
+                </div>
+                <div class="field">
+                    <label>Subject</label>
+                    <input type="text" id="subject" placeholder="e.g. Biology">
+                </div>
+            </div>
+
+            <button class="grade-btn magnetic" id="gradeBtn" onclick="gradeNow()">
+                <span id="btnText">⚡ Grade Now</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section id="resultSection">
+    <div class="section-label">Grading Result</div>
+    <div class="result-grid">
+        <div class="score-card">
+            <div class="score-tag">Final Score</div>
+            <div class="score-big" id="scoreBig">—</div>
+            <div class="score-denom" id="scoreDenom"></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" id="scoreBarFill"></div></div>
+        </div>
+        <div class="detail-col" id="detailCol"></div>
+    </div>
+</section>
+
+<script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursor-ring');
+    const glowOrb = document.getElementById('glow-orb');
+    let mx=0, my=0, rx=0, ry=0;
+
+    document.addEventListener('mousemove', e => {
+        mx = e.clientX; my = e.clientY;
+        cursor.style.left = mx+'px'; cursor.style.top = my+'px';
+        glowOrb.style.left = mx+'px'; glowOrb.style.top = my+'px';
+
+        // Inner card glow
+        const card = document.getElementById('formCard');
+        const r = card.getBoundingClientRect();
+        if (mx>r.left && mx<r.right && my>r.top && my<r.bottom) {
+            document.getElementById('innerGlow').style.left = (mx-r.left)+'px';
+            document.getElementById('innerGlow').style.top = (my-r.top)+'px';
+        }
+    });
+
+    // Smooth ring
+    function animateRing() {
+        rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+        ring.style.left = rx+'px'; ring.style.top = ry+'px';
+        requestAnimationFrame(animateRing);
+    }
+    animateRing();
+
+    // Cursor grow on hover
+    document.querySelectorAll('button, .upload-zone, .stat').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            cursor.style.width='20px'; cursor.style.height='20px';
+            cursor.style.background='#ec4899';
+            ring.style.width='60px'; ring.style.height='60px';
+        });
+        el.addEventListener('mouseleave', () => {
+            cursor.style.width='12px'; cursor.style.height='12px';
+            cursor.style.background='var(--accent)';
+            ring.style.width='40px'; ring.style.height='40px';
+        });
+    });
+
+    // Magnetic button
+    document.querySelectorAll('.magnetic').forEach(btn => {
+        btn.addEventListener('mousemove', e => {
+            const r = btn.getBoundingClientRect();
+            const x = e.clientX - r.left - r.width/2;
+            const y = e.clientY - r.top - r.height/2;
+            btn.style.transform = `translate(${x*0.2}px, ${y*0.3}px)`;
+        });
+        btn.addEventListener('mouseleave', () => { btn.style.transform='translate(0,0)'; });
+    });
+
+    function handleFile(input) {
+        const fn = document.getElementById('fileName');
+        fn.style.display = 'block';
+        fn.textContent = '✓ ' + input.files[0].name;
+    }
+
+    async function gradeNow() {
+        const image = document.getElementById('imageInput').files[0];
+        const answerKey = document.getElementById('answerKey').value;
+        const totalMarks = document.getElementById('totalMarks').value;
+
+        if (!image || !answerKey || !totalMarks) { alert('Please fill all fields.'); return; }
+
+        const btn = document.getElementById('gradeBtn');
+        const btnText = document.getElementById('btnText');
+        btn.disabled = true;
+        btnText.textContent = '🤖 AI is grading...';
+
+        const formData = new FormData();
+        formData.append('image', image);
+        formData.append('answer_key', answerKey);
+        formData.append('total_marks', totalMarks);
+
+        try {
+            const res = await fetch('/grade', { method:'POST', body:formData });
+            const data = await res.json();
+            showResult(data.result, totalMarks);
+        } catch(e) { alert('Something went wrong. Try again.'); }
+
+        btn.disabled = false;
+        btnText.textContent = '⚡ Grade Now';
+    }
+
+    function showResult(text, total) {
+        const lines = text.split('\n').filter(l=>l.trim());
+        let wrote='', score='', num='', feedback='';
+
+        lines.forEach(line => {
+            if (line.startsWith('STUDENT WROTE:')) wrote = line.replace('STUDENT WROTE:','').trim();
+            else if (line.startsWith('SCORE:')) { score=line.replace('SCORE:','').trim(); num=score.split('/')[0].trim(); }
+            else if (line.startsWith('FEEDBACK:')) feedback = line.replace('FEEDBACK:','').trim();
+        });
+
+        document.getElementById('scoreBig').textContent = num||'—';
+        document.getElementById('scoreDenom').textContent = score ? '/ '+total : '';
+        setTimeout(() => {
+            const pct = total ? (parseFloat(num)/parseFloat(total))*100 : 0;
+            document.getElementById('scoreBarFill').style.width = pct+'%';
+        }, 300);
+
+        const col = document.getElementById('detailCol');
+        col.innerHTML = '';
+        const items = [];
+        if (wrote) items.push({label:'Student Wrote', value:wrote});
+        if (feedback) items.push({label:'AI Feedback', value:feedback});
+        if (!wrote && !feedback) items.push({label:'Full Result', value:text});
+
+        items.forEach((item, i) => {
+            const card = document.createElement('div');
+            card.className = 'detail-card';
+            card.innerHTML = `<div class="dc-label">${item.label}</div><div class="dc-value">${item.value}</div>`;
+            col.appendChild(card);
+            setTimeout(() => card.classList.add('visible'), 200 + i*150);
+        });
+
+        const section = document.getElementById('resultSection');
+        section.style.display = 'block';
+        setTimeout(() => section.scrollIntoView({behavior:'smooth'}), 100);
+    }
+</script>
+</body>
+</html>

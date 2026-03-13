@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – Live Scan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-btn{font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#e8e4f0;cursor:none;text-decoration:none}
+        .main{position:relative;z-index:5;max-width:1200px;margin:0 auto;padding:40px 48px;display:grid;grid-template-columns:360px 1fr;gap:24px;align-items:start}
+        .card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:28px;position:relative;overflow:hidden;margin-bottom:20px}
+        .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .card-title{font-family:'Instrument Serif',serif;font-size:18px;margin-bottom:18px}
+        .tag{font-size:11px;padding:5px 12px;border-radius:20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:#a78bfa;display:inline-block;margin:0 4px 8px 0}
+        .field{margin-bottom:14px}
+        .field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        select,textarea,input[type=number]{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:#e8e4f0;background:#0d0d1a;outline:none;appearance:none;transition:border-color 0.25s}
+        select:focus,textarea:focus,input:focus{border-color:#8b5cf6}
+        textarea{resize:vertical;min-height:90px;background:rgba(255,255,255,0.03)}
+
+        /* Folder instruction box */
+        .folder-box{background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:14px 16px;font-size:12px;margin-bottom:16px}
+        .folder-path{font-family:monospace;font-size:11px;color:#a78bfa;word-break:break-all;margin-top:6px;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px}
+
+        /* Waiting indicator */
+        .waiting-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:16px;font-size:13px;color:#5a5570}
+        .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.2s infinite}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+        .dot.orange{background:#f59e0b}
+        .dot.purple{background:#8b5cf6}
+
+        /* New scan alert */
+        .new-scan-alert{display:none;padding:14px 18px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px;margin-bottom:16px;font-size:13px;color:#4ade80;animation:slideDown 0.3s ease}
+        @keyframes slideDown{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+        /* Grade button */
+        .grade-btn{width:100%;padding:16px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;transition:all 0.2s;display:none}
+        .grade-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.3)}
+        .grade-btn:disabled{opacity:0.5;transform:none;box-shadow:none}
+        .grade-btn.pulse-glow{animation:glowPulse 1.5s infinite}
+        @keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,0.4)}50%{box-shadow:0 0 20px 8px rgba(139,92,246,0.15)}}
+
+        /* Right panel */
+        .right-panel{}
+        .preview-box{min-height:180px;border:1.5px dashed rgba(255,255,255,0.08);border-radius:12px;display:flex;align-items:center;justify-content:center;text-align:center;color:#5a5570;font-size:13px;overflow:hidden;background:rgba(255,255,255,0.01);margin-bottom:0;position:relative}
+        .preview-content{padding:24px}
+        .spinner{width:36px;height:36px;border:3px solid rgba(139,92,246,0.2);border-top-color:#8b5cf6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* Results feed */
+        .results-feed{display:flex;flex-direction:column;gap:10px;max-height:500px;overflow-y:auto}
+        .result-item{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;animation:slideIn 0.4s ease}
+        @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+        .result-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+        .result-name{font-size:14px;font-weight:600}
+        .score-badge{padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(236,72,153,0.2));border:1px solid rgba(139,92,246,0.3);color:#c4b5fd}
+        .result-detail{font-size:11px;color:#5a5570;line-height:1.7;max-height:70px;overflow:hidden;white-space:pre-wrap}
+        .show-more{font-size:11px;color:#8b5cf6;background:none;border:none;cursor:none;margin-top:4px}
+        .empty-feed{text-align:center;padding:40px;color:#5a5570;font-size:13px}
+        .counter{font-size:12px;color:#5a5570;margin-bottom:12px}
+        .counter span{color:#a78bfa;font-weight:600}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <a href="/dashboard" class="nav-btn">← Dashboard</a>
+</nav>
+
+<div class="main">
+    <!-- LEFT PANEL -->
+    <div>
+        <!-- Exam info -->
+        <div class="card">
+            <div class="card-title">Exam Details</div>
+            <div>
+                <span class="tag">🏫 Class {{ class_name }}</span>
+                <span class="tag">📌 Section {{ section }}</span>
+                <span class="tag">📝 {{ exam_type }}</span>
+                <span class="tag">📚 {{ subject }}</span>
+            </div>
+        </div>
+
+        <!-- Student + answer key -->
+        <div class="card">
+            <div class="card-title">Grade Settings</div>
+            <div class="field">
+                <label>Current Student</label>
+                <select id="studentSelect">
+                    <option value="">-- Select Student --</option>
+                    {% for s in students %}
+                    <option value="{{ s.student_id }}">{{ s.student_id }} — {{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Total Marks</label>
+                <input type="number" id="totalMarks" placeholder="e.g. 50">
+            </div>
+            <div class="field">
+    <label>Answer Key PDF</label>
+    <div class="upload-zone" onclick="document.getElementById('akPdf').click()" style="border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;cursor:none;transition:all 0.25s;background:rgba(255,255,255,0.02)">
+        <div style="font-size:24px;margin-bottom:6px">📋</div>
+        <div style="font-size:13px;color:#5a5570">Click to upload answer key PDF</div>
+        <div id="akFileName" style="font-size:12px;color:#8b5cf6;margin-top:6px;display:none"></div>
+        <input type="file" id="akPdf" accept=".pdf" style="display:none" onchange="loadAnswerKey(this)">
+    </div>
+</div>
+        </div>
+
+        <!-- Scanner instructions -->
+        <div class="card">
+            <div class="card-title">📠 Scanner Instructions</div>
+            <div class="folder-box">
+                <div style="font-size:12px;color:#c4bdd4;font-weight:500">Save scanned files to this folder:</div>
+                <div class="folder-path" id="folderPath">Loading...</div>
+            </div>
+            <div style="font-size:12px;color:#5a5570;line-height:1.8;margin-bottom:16px">
+                1. Open <strong style="color:#a78bfa">Windows Scan</strong> app<br>
+                2. Select student in dropdown above<br>
+                3. Place answer sheet on scanner<br>
+                4. Scan → save to the folder above<br>
+                5. GradeAI detects it automatically ⚡
+            </div>
+
+            <!-- Live status -->
+            <div class="waiting-bar" id="waitingBar">
+                <div class="dot" id="statusDot"></div>
+                <div id="statusText">Watching for new scans...</div>
+            </div>
+
+            <!-- New scan alert -->
+            <div class="new-scan-alert" id="newScanAlert"></div>
+
+            <!-- Grade button -->
+            <button class="grade-btn pulse-glow" id="gradeBtn" onclick="gradeLatest()">
+                ⚡ Grade This Sheet Now
+            </button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+        <!-- Preview -->
+        <div class="card">
+            <div class="card-title">Latest Scan Preview</div>
+            <div class="preview-box" id="previewBox">
+                <div class="preview-content">
+                    <div style="font-size:36px;margin-bottom:10px">📄</div>
+                    <div>Waiting for scan...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card">
+            <div class="card-title">Results</div>
+            <div class="counter">Graded: <span id="gradedCount">0</span> students</div>
+            <div class="results-feed" id="resultsFeed">
+                <div class="empty-feed">No results yet. Start scanning! 🚀</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let answerKeyText = '';
+
+async function loadAnswerKey(input) {
+    const file = input.files[0];
+    document.getElementById('akFileName').style.display = 'block';
+    document.getElementById('akFileName').textContent = '✓ ' + file.name;
+
+    const fd = new FormData();
+    fd.append('pdf', file);
+    const res = await fetch('/extract-pdf-text', { method: 'POST', body: fd });
+    const data = await res.json();
+    answerKeyText = data.text;
+}
+    // Cursor
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+
+    let latestFile = null;
+    let gradedCount = 0;
+    let lastKnownFiles = [];
+
+    // Load folder path
+    fetch('/scan-folder').then(r=>r.json()).then(d=>{
+        document.getElementById('folderPath').textContent = d.folder;
+    });
+
+    // Poll every 2 seconds for new scans
+    async function pollScans() {
+        try {
+            const res = await fetch('/scan-queue');
+            const data = await res.json();
+            const files = data.files || [];
+
+            // Check if new file appeared
+            const newFiles = files.filter(f => !lastKnownFiles.includes(f.path));
+
+            if (newFiles.length > 0) {
+                const newest = newFiles[newFiles.length - 1];
+                latestFile = newest;
+
+                // Update status
+                document.getElementById('statusDot').className = 'dot purple';
+                document.getElementById('statusText').textContent = `New scan detected: ${newest.name}`;
+
+                // Show alert
+                const alert = document.getElementById('newScanAlert');
+                alert.style.display = 'block';
+                alert.textContent = `✅ New scan ready: ${newest.name}`;
+
+                // Show grade button
+                document.getElementById('gradeBtn').style.display = 'block';
+
+                // Show preview placeholder
+                document.getElementById('previewBox').innerHTML = `
+                    <div class="preview-content">
+                        <div style="font-size:36px;margin-bottom:10px">✅</div>
+                        <div style="color:#22c55e;font-weight:500">${newest.name}</div>
+                        <div style="font-size:12px;color:#5a5570;margin-top:6px">Ready to grade</div>
+                    </div>`;
+
+                lastKnownFiles = files.map(f => f.path);
+            }
+        } catch(e) {}
+    }
+
+    async function gradeLatest() {
+        const studentId = document.getElementById('studentSelect').value;
+        const answerKey = answerKeyText;
+        const totalMarks = document.getElementById('totalMarks').value;
+
+        if (!studentId) { alert('Please select the student first.'); return; }
+        if (!answerKey) { alert('Please upload the answer key PDF first.'); return; }
+        if (!totalMarks) { alert('Please enter total marks.'); return; }
+        if (!latestFile) { alert('No scanned file detected yet.'); return; }
+
+        const btn = document.getElementById('gradeBtn');
+        btn.disabled = true;
+        btn.textContent = '🤖 AI Grading...';
+
+        // Show spinner in preview
+        document.getElementById('previewBox').innerHTML = `
+            <div class="preview-content">
+                <div class="spinner"></div>
+                <div style="color:#a78bfa;font-size:13px">AI is reading and grading...</div>
+            </div>`;
+
+        try {
+            const res = await fetch('/grade-live-scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    image_path: latestFile.path,
+                    answer_key: answerKey,
+                    total_marks: totalMarks,
+                    student_id: studentId,
+                    exam_type: '{{ exam_type }}',
+                    subject: '{{ subject }}',
+                    class_name: '{{ class_name }}',
+                    section: '{{ section }}'
+                })
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+                alert('Grading failed: ' + (data.error || 'Unknown error'));
+                btn.disabled = false;
+                btn.textContent = '⚡ Grade This Sheet Now';
+                return;
+            }
+
+            // Remove from queue
+            await fetch('/pop-scan-queue', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({path: latestFile.path})
+            });
+
+            // Update preview with score
+            document.getElementById('previewBox').innerHTML = `
+                <div class="preview-content">
+                    <div style="font-size:48px;margin-bottom:8px">🎯</div>
+                    <div style="font-size:28px;font-weight:700;color:#a78bfa">${data.score}</div>
+                    <div style="font-size:12px;color:#5a5570;margin-top:6px">Graded successfully</div>
+                </div>`;
+
+            // Add to results feed
+            gradedCount++;
+            document.getElementById('gradedCount').textContent = gradedCount;
+
+            const studentName = document.getElementById('studentSelect').selectedOptions[0].text;
+            const feed = document.getElementById('resultsFeed');
+            if (feed.querySelector('.empty-feed')) feed.innerHTML = '';
+
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            const shortResult = data.result.split('\n').slice(0, 5).join('\n');
+            item.innerHTML = `
+                <div class="result-top">
+                    <div class="result-name">👤 ${studentName}</div>
+                    <div class="score-badge">${data.score}</div>
+                </div>
+                <div class="result-detail">${shortResult}</div>
+                <button class="show-more" onclick="this.previousElementSibling.style.maxHeight='none';this.style.display='none'">Show more ↓</button>
+            `;
+            feed.insertBefore(item, feed.firstChild);
+
+            // Auto select next student
+            const sel = document.getElementById('studentSelect');
+            if (sel.selectedIndex < sel.options.length - 1) {
+                sel.selectedIndex = sel.selectedIndex + 1;
+            }
+
+            // Reset state
+            latestFile = null;
+            document.getElementById('newScanAlert').style.display = 'none';
+            document.getElementById('statusDot').className = 'dot';
+            document.getElementById('statusText').textContent = 'Watching for next scan...';
+
+        } catch(e) {
+            alert('Error: ' + e.message);
+        }
+
+        btn.disabled = false;
+        btn.textContent = '⚡ Grade This Sheet Now';
+        btn.style.display = 'none';
+    }
+
+    // Start polling
+    setInterval(pollScans, 2000);
+    pollScans();
+</script>
+</body>
+</html>

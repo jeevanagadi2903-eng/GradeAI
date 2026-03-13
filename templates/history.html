@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-right{display:flex;align-items:center;gap:12px}
+        .nav-btn{font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#e8e4f0;cursor:none;text-decoration:none;transition:all 0.2s}
+        .nav-btn:hover{background:rgba(139,92,246,0.1)}
+        .main{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:48px}
+        .page-title{font-family:'Instrument Serif',serif;font-size:36px;letter-spacing:-1px;margin-bottom:8px}
+        .page-title span{font-style:italic;background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .subtitle{color:#5a5570;font-size:14px;margin-bottom:40px}
+        .table-wrap{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;overflow:hidden}
+        .table-wrap::before{content:'';display:block;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        table{width:100%;border-collapse:collapse}
+        th{padding:16px 20px;text-align:left;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;border-bottom:1px solid rgba(255,255,255,0.07)}
+        td{padding:16px 20px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:#c4bdd4;transition:background 0.2s}
+        tr:hover td{background:rgba(139,92,246,0.04)}
+        tr:last-child td{border-bottom:none}
+        .score-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa}
+        .exam-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);color:#67e8f9}
+        .empty{text-align:center;padding:60px;color:#5a5570;font-size:15px}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="nav-right">
+        <a href="/dashboard" class="nav-btn">← Dashboard</a>
+        <a href="/logout" class="nav-btn">Logout</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="page-title">Results <span>History</span></div>
+    <div class="subtitle">{{ school_name }} — Last 50 graded papers</div>
+
+    <div class="table-wrap">
+        {% if results %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>ID</th>
+                    <th>Class</th>
+                    <th>Exam</th>
+                    <th>Subject</th>
+                    <th>Score</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td>{{ r.student_name }}</td>
+                    <td style="color:#5a5570">{{ r.student_id }}</td>
+                    <td>{{ r.class }} – {{ r.section }}</td>
+                    <td><span class="exam-pill">{{ r.exam_type }}</span></td>
+                    <td>{{ r.subject }}</td>
+                    <td><span class="score-pill">{{ r.score }}</span></td>
+                    <td style="color:#5a5570">{{ r.date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No results yet. Start grading to see history here.</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+</script>
+</body>
+</html>

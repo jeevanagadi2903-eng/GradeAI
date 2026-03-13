@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI – Grade Paper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .breadcrumb{font-size:12px;color:#5a5570;display:flex;gap:8px;align-items:center}
+        .breadcrumb a{color:#8b5cf6;text-decoration:none}
+        .main{position:relative;z-index:5;max-width:900px;margin:0 auto;padding:48px}
+        .meta-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
+        .meta-tag{font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#a78bfa}
+        .form-card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px;position:relative;overflow:hidden}
+        .form-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .form-title{font-family:'Instrument Serif',serif;font-size:22px;margin-bottom:28px}
+        .field{margin-bottom:20px}
+        .field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        select,textarea,input[type="number"]{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:14px;color:#e8e4f0;background:#0d0d1a;outline:none;transition:all 0.25s;resize:none;appearance:none}
+        textarea{min-height:85px;background:rgba(255,255,255,0.03)}
+        select:focus,textarea:focus,input:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+        .upload-zone{border:1.5px dashed rgba(255,255,255,0.1);border-radius:12px;padding:24px;text-align:center;cursor:none;transition:all 0.25s;background:rgba(255,255,255,0.02)}
+        .upload-zone:hover{border-color:#8b5cf6}
+        .upload-zone input{display:none}
+        .upload-icon{font-size:26px;margin-bottom:6px}
+        .upload-hint{font-size:13px;color:#5a5570}
+        .file-name{font-size:12px;color:#8b5cf6;margin-top:6px;display:none}
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .grade-btn{width:100%;padding:16px;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;margin-top:8px;transition:transform 0.2s,box-shadow 0.2s}
+        .grade-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.3)}
+        .grade-btn:disabled{opacity:0.5;transform:none}
+        .result-box{margin-top:28px;display:none}
+        .result-grid{display:grid;grid-template-columns:200px 1fr;gap:16px}
+        .score-card{background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(236,72,153,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:28px;text-align:center}
+        .score-tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#8b5cf6;margin-bottom:12px}
+        .score-big{font-family:'Instrument Serif',serif;font-size:60px;line-height:1;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .score-denom{font-size:16px;color:#5a5570;margin-top:4px}
+        .score-bar-bg{width:100%;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:16px;overflow:hidden}
+        .score-bar-fill{height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899);border-radius:2px;width:0%;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
+        .detail-col{display:flex;flex-direction:column;gap:12px}
+        .detail-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px 22px;border-left:2px solid #8b5cf6;opacity:0;transform:translateX(20px);transition:all 0.3s}
+        .detail-card.visible{opacity:1;transform:translateX(0)}
+        .dc-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:8px}
+        .dc-value{font-size:14px;line-height:1.6;color:#e8e4f0;font-weight:300}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="breadcrumb">
+        <a href="/dashboard">Dashboard</a> / Grade Paper
+    </div>
+</nav>
+
+<div class="main">
+    <div class="meta-bar">
+        <span class="meta-tag">🏫 Class {{ class_name }}</span>
+        <span class="meta-tag">📌 Section {{ section }}</span>
+        <span class="meta-tag">📝 {{ exam_type }}</span>
+        <span class="meta-tag">📚 {{ subject }}</span>
+    </div>
+
+    <div class="form-card">
+        <div class="form-title">Upload & Grade</div>
+
+        <div class="field">
+            <label>Select Student</label>
+            <select id="studentSelect">
+                <option value="">-- Select Student --</option>
+                {% for s in students %}
+                <option value="{{ s.student_id }}">{{ s.student_id }} – {{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label>Answer Sheet Photo</label>
+            <div class="upload-zone" onclick="document.getElementById('imgInput').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-hint">Click to upload photo</div>
+                <div class="file-name" id="fileName"></div>
+                <input type="file" id="imgInput" accept="image/*" onchange="showFile(this)">
+            </div>
+        </div>
+
+        <div class="field">
+            <label>Answer Key</label>
+            <textarea id="answerKey" placeholder="Type the correct answer here..."></textarea>
+        </div>
+
+        <div class="two-col">
+            <div class="field">
+                <label>Total Marks</label>
+                <input type="number" id="totalMarks" placeholder="e.g. 10">
+            </div>
+        </div>
+
+        <button class="grade-btn" id="gradeBtn" onclick="gradeNow()">
+            <span id="btnText">⚡ Grade Now</span>
+        </button>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-grid">
+                <div class="score-card">
+                    <div class="score-tag">Score</div>
+                    <div class="score-big" id="scoreBig">—</div>
+                    <div class="score-denom" id="scoreDenom"></div>
+                    <div class="score-bar-bg"><div class="score-bar-fill" id="scoreBar"></div></div>
+                </div>
+                <div class="detail-col" id="detailCol"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto load answer key when page loads
+async function autoLoadKey() {
+    const res = await fetch(`/get-answer-key?class={{ class_name }}&section={{ section }}&exam_type={{ exam_type }}&subject={{ subject }}`);
+    const data = await res.json();
+    if (data.answer_key) {
+        document.getElementById('answerKey').value = data.answer_key;
+        document.getElementById('totalMarks').value = data.total_marks;
+        document.getElementById('answerKey').style.borderColor = '#22c55e';
+    }
+}
+autoLoadKey();
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+
+    function showFile(input){
+        const fn=document.getElementById('fileName');
+        fn.style.display='block';
+        fn.textContent='✓ '+input.files[0].name;
+    }
+
+    async function gradeNow(){
+        const student=document.getElementById('studentSelect').value;
+        const image=document.getElementById('imgInput').files[0];
+        const answerKey=document.getElementById('answerKey').value;
+        const totalMarks=document.getElementById('totalMarks').value;
+        if(!student||!image||!answerKey||!totalMarks){alert('Please fill all fields.');return;}
+
+        const btn=document.getElementById('gradeBtn');
+        btn.disabled=true;
+        document.getElementById('btnText').textContent='🤖 AI is grading...';
+
+        const fd=new FormData();
+        fd.append('image',image);
+        fd.append('answer_key',answerKey);
+        fd.append('total_marks',totalMarks);
+        fd.append('student_id',student);
+        fd.append('exam_type','{{ exam_type }}');
+        fd.append('subject','{{ subject }}');
+        fd.append('class_name','{{ class_name }}');
+        fd.append('section','{{ section }}');
+
+        const res=await fetch('/grade',{method:'POST',body:fd});
+        const data=await res.json();
+        showResult(data.result,totalMarks);
+
+        btn.disabled=false;
+        document.getElementById('btnText').textContent='⚡ Grade Now';
+    }
+
+    function showResult(text,total){
+        const lines=text.split('\n').filter(l=>l.trim());
+        let wrote='',score='',num='',feedback='';
+        lines.forEach(line=>{
+            if(line.startsWith('STUDENT WROTE:'))wrote=line.replace('STUDENT WROTE:','').trim();
+            else if(line.startsWith('SCORE:')){score=line.replace('SCORE:','').trim();num=score.split('/')[0].trim();}
+            else if(line.startsWith('FEEDBACK:'))feedback=line.replace('FEEDBACK:','').trim();
+        });
+        document.getElementById('scoreBig').textContent=num||'—';
+        document.getElementById('scoreDenom').textContent=score?'/ '+total:'';
+        setTimeout(()=>{
+            const pct=total?(parseFloat(num)/parseFloat(total))*100:0;
+            document.getElementById('scoreBar').style.width=pct+'%';
+        },300);
+        const col=document.getElementById('detailCol');
+        col.innerHTML='';
+        const items=[];
+        if(wrote)items.push({label:'Student Wrote',value:wrote});
+        if(feedback)items.push({label:'AI Feedback',value:feedback});
+        if(!wrote&&!feedback)items.push({label:'Full Result',value:text});
+        items.forEach((item,i)=>{
+            const card=document.createElement('div');
+            card.className='detail-card';
+            card.innerHTML=`<div class="dc-label">${item.label}</div><div class="dc-value">${item.value}</div>`;
+            col.appendChild(card);
+            setTimeout(()=>card.classList.add('visible'),200+i*150);
+        });
+        document.getElementById('resultBox').style.display='block';
+    }
+</script>
+</body>
+</html>
