@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GradeAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:#06060f;color:#e8e4f0;min-height:100vh;cursor:none;display:flex;flex-direction:column}
+        #cursor{position:fixed;width:12px;height:12px;background:#8b5cf6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width 0.15s,height 0.15s}
+        #ring{position:fixed;width:40px;height:40px;border:1.5px solid rgba(139,92,246,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%)}
+        .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+        .orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;animation:floatOrb 10s ease-in-out infinite}
+        .orb1{width:500px;height:500px;background:rgba(139,92,246,0.10);top:-150px;left:-150px}
+        .orb2{width:400px;height:400px;background:rgba(236,72,153,0.07);bottom:-100px;right:-100px;animation-delay:-4s}
+        @keyframes floatOrb{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}
+        nav{position:relative;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:20px 48px;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(6,6,15,0.8);backdrop-filter:blur(20px)}
+        .logo{font-family:'Instrument Serif',serif;font-size:22px;background:linear-gradient(135deg,#fff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .nav-right{display:flex;align-items:center;gap:12px}
+        .school-pill{font-size:12px;padding:6px 14px;border-radius:20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:#a78bfa}
+        .nav-btn{font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.03);color:#e8e4f0;cursor:none;text-decoration:none;transition:all 0.2s}
+        .nav-btn:hover{background:rgba(139,92,246,0.1)}
+        .main{position:relative;z-index:5;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px}
+        .greeting{text-align:center;margin-bottom:56px}
+        .greeting h1{font-family:'Instrument Serif',serif;font-size:42px;font-weight:400;letter-spacing:-1px;line-height:1.2;margin-bottom:12px;color:white;-webkit-text-fill-color:white}
+        .greeting h1 .school-name{font-style:italic;font-weight:400;background:linear-gradient(135deg,#8b5cf6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .greeting p{color:#5a5570;font-size:16px}
+        .selector-card{background:rgba(13,13,26,0.95);border:1px solid rgba(255,255,255,0.07);border-radius:24px;padding:48px;width:100%;max-width:600px;position:relative;overflow:hidden}
+        .selector-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.8),transparent)}
+        .fields{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
+        .field label{display:block;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#5a5570;margin-bottom:10px}
+        select{width:100%;border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 18px;font-family:'DM Sans',sans-serif;font-size:15px;color:#e8e4f0;background:#0d0d1a;outline:none;cursor:none;transition:all 0.25s;appearance:none}
+        select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,0.1)}
+        .proceed-btn{width:100%;padding:17px;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;transition:transform 0.2s,box-shadow 0.2s}
+        .proceed-btn:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(139,92,246,0.35)}
+    </style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="ring"></div>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<nav>
+    <div class="logo">GradeAI</div>
+    <div class="nav-right">
+        <span class="school-pill">🏫 {{ school_name }}</span>
+        <a href="/students" class="nav-btn">👥 Students</a>
+        <a href="/scanner-setup" class="nav-btn">📠 Scanner</a>
+        <a href="/logout" class="nav-btn">Logout</a>
+    </div>
+</nav>
+
+<div class="main">
+    <div class="greeting">
+        <h1><span id="greetingText">Good morning</span>, <span class="school-name">{{ school_name }}</span></h1>
+        <p>Select a class and section to get started.</p>
+    </div>
+
+    <div class="selector-card">
+        <div class="fields">
+            <div class="field">
+                <label>Class</label>
+                <select id="classSelect">
+                    <option value="">-- Select Class --</option>
+                    {% for c in range(1, 13) %}
+                    <option value="{{ c }}">Class {{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Section</label>
+                <select id="sectionSelect">
+                    <option value="">-- Select Section --</option>
+                    <option>A</option><option>B</option><option>C</option>
+                    <option>D</option><option>E</option>
+                </select>
+            </div>
+        </div>
+        <button class="proceed-btn" onclick="proceed()">Continue →</button>
+    </div>
+</div>
+
+<script>
+    const cursor=document.getElementById('cursor'),ring=document.getElementById('ring');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+    (function animate(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animate)})();
+    document.querySelectorAll('button,select,a').forEach(el=>{
+        el.addEventListener('mouseenter',()=>{cursor.style.width='20px';cursor.style.height='20px'});
+        el.addEventListener('mouseleave',()=>{cursor.style.width='12px';cursor.style.height='12px'});
+    });
+    const hour=new Date().getHours();
+    let greeting='Good morning';
+    if(hour>=12&&hour<17) greeting='Good afternoon';
+    else if(hour>=17) greeting='Good evening';
+    document.getElementById('greetingText').textContent=greeting;
+
+    function proceed(){
+        const c=document.getElementById('classSelect').value;
+        const s=document.getElementById('sectionSelect').value;
+        if(!c||!s){alert('Please select class and section.');return;}
+        window.location.href=`/dashboard?class=${c}&section=${s}`;
+    }
+</script>
+</body>
+</html>
