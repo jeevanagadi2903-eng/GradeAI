@@ -118,22 +118,66 @@
 </div>
         </div>
 
-        <!-- Scanner instructions -->
+        <!-- Camera Upload + Scanner card -->
         <div class="card">
-            <div class="card-title">📠 Scanner Instructions</div>
-            <div class="folder-box">
-                <div style="font-size:12px;color:#c4bdd4;font-weight:500">Save scanned files to this folder:</div>
-                <div class="folder-path" id="folderPath">Loading...</div>
-            </div>
-            <div style="font-size:12px;color:#5a5570;line-height:1.8;margin-bottom:16px">
-                1. Open <strong style="color:#a78bfa">Windows Scan</strong> app<br>
-                2. Select student in dropdown above<br>
-                3. Place answer sheet on scanner<br>
-                4. Scan → save to the folder above<br>
-                5. GradeAI detects it automatically ⚡
+            <div class="card-title">📷 Upload Answer Sheet</div>
+
+            <!-- Mode tabs -->
+            <div style="display:flex;gap:8px;margin-bottom:18px">
+                <button id="tabCamera" onclick="switchTab('camera')" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #8b5cf6;background:rgba(139,92,246,0.15);color:#c4b5fd;font-size:12px;font-weight:600;cursor:pointer">
+                    📱 Camera / Gallery
+                </button>
+                <button id="tabScanner" onclick="switchTab('scanner')" style="flex:1;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#5a5570;font-size:12px;font-weight:600;cursor:pointer">
+                    📠 Scanner
+                </button>
             </div>
 
-            <!-- Live status -->
+            <!-- CAMERA TAB -->
+            <div id="cameraTab">
+                <!-- Camera capture -->
+                <div onclick="document.getElementById('cameraCapture').click()"
+                     style="border:1.5px dashed rgba(139,92,246,0.4);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:rgba(139,92,246,0.04);margin-bottom:10px;transition:all 0.2s"
+                     onmouseover="this.style.background='rgba(139,92,246,0.1)'"
+                     onmouseout="this.style.background='rgba(139,92,246,0.04)'">
+                    <div style="font-size:32px;margin-bottom:6px">📷</div>
+                    <div style="font-size:13px;color:#a78bfa;font-weight:600">Take Photo with Camera</div>
+                    <div style="font-size:11px;color:#5a5570;margin-top:4px">Opens phone/device camera directly</div>
+                </div>
+                <!-- Hidden camera input (rear camera on mobile) -->
+                <input type="file" id="cameraCapture" accept="image/*" capture="environment"
+                       style="display:none" onchange="handleCameraUpload(this)">
+
+                <!-- Gallery upload -->
+                <div onclick="document.getElementById('galleryPick').click()"
+                     style="border:1.5px dashed rgba(255,255,255,0.08);border-radius:12px;padding:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,0.01);margin-bottom:14px;transition:all 0.2s"
+                     onmouseover="this.style.background='rgba(255,255,255,0.04)'"
+                     onmouseout="this.style.background='rgba(255,255,255,0.01)'">
+                    <div style="font-size:20px;margin-bottom:4px">🖼️</div>
+                    <div style="font-size:12px;color:#5a5570">Or choose from gallery / file picker</div>
+                </div>
+                <input type="file" id="galleryPick" accept="image/*"
+                       style="display:none" onchange="handleCameraUpload(this)">
+
+                <!-- Upload status -->
+                <div id="uploadStatus" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px"></div>
+            </div>
+
+            <!-- SCANNER TAB -->
+            <div id="scannerTab" style="display:none">
+                <div class="folder-box">
+                    <div style="font-size:12px;color:#c4bdd4;font-weight:500">Save scanned files to this folder:</div>
+                    <div class="folder-path" id="folderPath">Loading...</div>
+                </div>
+                <div style="font-size:12px;color:#5a5570;line-height:1.8;margin-bottom:16px">
+                    1. Open <strong style="color:#a78bfa">Windows Scan</strong> app<br>
+                    2. Select student in dropdown above<br>
+                    3. Place answer sheet on scanner<br>
+                    4. Scan → save to the folder above<br>
+                    5. GradeAI detects it automatically ⚡
+                </div>
+            </div>
+
+            <!-- Live status (shared by both modes) -->
             <div class="waiting-bar" id="waitingBar">
                 <div class="dot" id="statusDot"></div>
                 <div id="statusText">Watching for new scans...</div>
@@ -153,7 +197,7 @@
     <div class="right-panel">
         <!-- Preview -->
         <div class="card">
-            <div class="card-title">Latest Scan Preview</div>
+            <div class="card-title">Image Preview</div>
             <div class="preview-box" id="previewBox">
                 <div class="preview-content">
                     <div style="font-size:36px;margin-bottom:10px">📄</div>
@@ -175,6 +219,77 @@
 
 <script>
     let answerKeyText = '';
+
+    // ── Tab switching ──────────────────────────────────────────────────────
+    function switchTab(tab) {
+        const isCamera = tab === 'camera';
+        document.getElementById('cameraTab').style.display   = isCamera ? 'block' : 'none';
+        document.getElementById('scannerTab').style.display  = isCamera ? 'none'  : 'block';
+        document.getElementById('tabCamera').style.cssText  += isCamera
+            ? ';border-color:#8b5cf6;background:rgba(139,92,246,0.15);color:#c4b5fd'
+            : ';border-color:rgba(255,255,255,0.08);background:transparent;color:#5a5570';
+        document.getElementById('tabScanner').style.cssText += isCamera
+            ? ';border-color:rgba(255,255,255,0.08);background:transparent;color:#5a5570'
+            : ';border-color:#8b5cf6;background:rgba(139,92,246,0.15);color:#c4b5fd';
+    }
+
+    // ── Camera / Gallery upload ────────────────────────────────────────────
+    async function handleCameraUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        // Show preview immediately in the right panel
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('previewBox').innerHTML = `
+                <img src="${e.target.result}"
+                     style="width:100%;border-radius:10px;object-fit:contain;max-height:340px">`;
+        };
+        reader.readAsDataURL(file);
+
+        // Show uploading status
+        const statusEl = document.getElementById('uploadStatus');
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(139,92,246,0.08)';
+        statusEl.style.border = '1px solid rgba(139,92,246,0.2)';
+        statusEl.style.color = '#a78bfa';
+        statusEl.textContent = '⏳ Uploading image...';
+
+        const fd = new FormData();
+        fd.append('image', file);
+
+        try {
+            const res  = await fetch('/upload-camera-image', { method: 'POST', body: fd });
+            const data = await res.json();
+
+            if (data.success) {
+                // Put into the same latestFile variable that gradeLatest() uses
+                latestFile = { path: data.path, name: data.name };
+
+                statusEl.style.background = 'rgba(34,197,94,0.08)';
+                statusEl.style.border = '1px solid rgba(34,197,94,0.2)';
+                statusEl.style.color = '#4ade80';
+                statusEl.textContent = `✅ Uploaded: ${data.name}`;
+
+                document.getElementById('statusDot').className = 'dot purple';
+                document.getElementById('statusText').textContent = `Image ready: ${data.name}`;
+                document.getElementById('newScanAlert').style.display = 'block';
+                document.getElementById('newScanAlert').textContent = `✅ Photo ready to grade: ${data.name}`;
+                document.getElementById('gradeBtn').style.display = 'block';
+            } else {
+                statusEl.style.background = 'rgba(239,68,68,0.08)';
+                statusEl.style.border = '1px solid rgba(239,68,68,0.2)';
+                statusEl.style.color = '#f87171';
+                statusEl.textContent = '❌ Upload failed: ' + (data.error || 'Unknown error');
+            }
+        } catch (e) {
+            statusEl.style.color = '#f87171';
+            statusEl.textContent = '❌ Upload error: ' + e.message;
+        }
+
+        // Reset input so same file can be re-selected
+        input.value = '';
+    }
 
 async function loadAnswerKey(input) {
     const file = input.files[0];
