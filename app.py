@@ -525,6 +525,49 @@ def list_answer_keys():
         'total_marks': k.total_marks
     } for k in keys])
 
+# ─── CAMERA UPLOAD ────────────────────────────────────────────────────────────
+@app.route('/upload-camera-image', methods=['POST'])
+def upload_camera_image():
+    if 'school_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    file = request.files.get('image')
+    if not file:
+        return jsonify({'error': 'No image uploaded'}), 400
+
+    # Accept jpg, jpeg, png, heic, webp
+    ext = os.path.splitext(file.filename)[1].lower() or '.jpg'
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.bmp']:
+        ext = '.jpg'
+
+    import uuid
+    filename = f"camera_{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(save_path)
+
+    # Optionally pre-process: straighten & enhance using OpenCV if available
+    try:
+        import cv2
+        import numpy as np
+        img = cv2.imread(save_path)
+        if img is not None:
+            # Auto-enhance contrast
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced = clahe.apply(gray)
+            # Save back as color for AI model
+            enhanced_color = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
+            cv2.imwrite(save_path, enhanced_color)
+    except Exception:
+        pass  # OpenCV not available — skip enhancement, still works
+
+    # Add to scan queue so existing grading flow picks it up
+    with queue_lock:
+        if save_path not in scanned_queue:
+            scanned_queue.append(save_path)
+
+    return jsonify({'success': True, 'path': save_path, 'name': filename})
+
 # ─── SCANNER SETUP ────────────────────────────────────────────────────────────
 @app.route('/scanner-setup')
 def scanner_setup():
