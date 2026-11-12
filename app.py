@@ -7,10 +7,17 @@ import os, re, uuid
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
 
-# Render/Heroku give postgres://, SQLAlchemy needs postgresql://
-db_url = os.environ.get('DATABASE_URL') or f"sqlite:///{os.path.join(os.getcwd(), 'gradeai.db')}"
-if db_url.startswith('postgres://'):
-    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+# Clean the URL and use the psycopg (v3) driver for Postgres
+db_url = (os.environ.get('DATABASE_URL') or '').strip().strip('"').strip("'")
+if db_url.startswith('DATABASE_URL='):
+    db_url = db_url.split('=', 1)[1].strip().strip('"')
+if not db_url:
+    db_url = f"sqlite:///{os.path.join(os.getcwd(), 'gradeai.db')}"
+elif db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql+psycopg://', 1)
+elif db_url.startswith('postgresql://'):
+    db_url = db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+db_url = db_url.replace('&channel_binding=require', '').replace('channel_binding=require&', '')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
