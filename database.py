@@ -27,10 +27,12 @@ class Result(db.Model):
     subject = db.Column(db.String(50), nullable=False)
     class_name = db.Column(db.String(10), nullable=False)
     section = db.Column(db.String(5), nullable=False)
+    student_name = db.Column(db.String(100))          # ← added
     student_wrote = db.Column(db.Text)
     score = db.Column(db.String(20))
     feedback = db.Column(db.Text)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    total_marks = db.Column(db.Integer, default=0)    # ← added
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # ← renamed from date
 
 class AnswerKey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,6 +41,6 @@ class AnswerKey(db.Model):
     section = db.Column(db.String(5), nullable=False)
     exam_type = db.Column(db.String(20), nullable=False)
     subject = db.Column(db.String(50), nullable=False)
-    answer_key = db.Column(db.Text, nullable=False)
-    total_marks = db.Column(db.Integer, nullable=False)
+    content = db.Column(db.Text, nullable=False)      # ← renamed from answer_key
+    total_marks = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
